@@ -335,39 +335,37 @@
                 const data = await response.json();
 
                 if (response.ok && data.success !== false) {
-                    // The SpamCheck API returns: { score: 0.0-5.0, rules: [], ... }
-                    const score = data.score || 0;
+                    // Handle score - could be string or number
+                    let score = parseFloat(data.score) || 0;
                     const maxScore = 5.0;
-                    const scorePercent = (score / maxScore) * 100;
                     
                     let scoreClass = '';
                     let scoreText = '';
-                    let scoreLevel = '';
                     
                     if (score <= 1.0) {
                         scoreClass = 'score-low';
                         scoreText = 'Low Risk - Excellent!';
-                        scoreLevel = 'low';
                     } else if (score <= 2.5) {
                         scoreClass = 'score-medium';
                         scoreText = 'Medium Risk - Some issues detected';
-                        scoreLevel = 'medium';
                     } else {
                         scoreClass = 'score-high';
                         scoreText = 'High Risk - Needs improvement';
-                        scoreLevel = 'high';
                     }
 
                     let rulesHtml = '';
                     if (data.rules && data.rules.length > 0) {
                         rulesHtml = '<h3 style="margin-top: 1rem; margin-bottom: 0.5rem;">📋 Spam Detection Rules:</h3>';
                         data.rules.forEach(rule => {
+                            // Parse rule score - handle string or number
+                            let ruleScore = parseFloat(rule.score) || 0;
                             let ruleClass = 'rule-low';
                             let ruleScoreClass = '';
-                            if (rule.score >= 1.5) {
+                            
+                            if (ruleScore >= 1.5) {
                                 ruleClass = 'rule-high';
                                 ruleScoreClass = 'score-high';
-                            } else if (rule.score >= 0.5) {
+                            } else if (ruleScore >= 0.5) {
                                 ruleClass = 'rule-medium';
                                 ruleScoreClass = 'score-medium';
                             } else {
@@ -377,9 +375,9 @@
                             
                             rulesHtml += `
                                 <div class="rule-item ${ruleClass}">
-                                    <strong>${escapeHtml(rule.name)}</strong>
-                                    <div style="margin-top: 0.25rem; font-size: 0.9rem; color: #666;">${escapeHtml(rule.description)}</div>
-                                    <div class="rule-score ${ruleScoreClass}">Score: +${rule.score.toFixed(1)} points</div>
+                                    <strong>${escapeHtml(rule.name || 'Unknown rule')}</strong>
+                                    <div style="margin-top: 0.25rem; font-size: 0.9rem; color: #666;">${escapeHtml(rule.description || 'No description')}</div>
+                                    <div class="rule-score ${ruleScoreClass}">Score: +${ruleScore.toFixed(1)} points</div>
                                 </div>
                             `;
                         });
@@ -403,6 +401,7 @@
                     resultDiv.innerHTML = `<div class="alert alert-error">❌ Error: ${data.error || data.Message || 'Failed to check spam score'}</div>`;
                 }
             } catch (error) {
+                console.error('Spam check error:', error);
                 resultDiv.innerHTML = `<div class="alert alert-error">❌ Network error: ${error.message}</div>`;
             }
         }
@@ -418,6 +417,7 @@
         }
 
         function escapeHtml(text) {
+            if (!text) return '';
             const div = document.createElement('div');
             div.textContent = text;
             return div.innerHTML;
