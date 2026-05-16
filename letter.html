@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Email Spam Checker</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 2rem;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        .form-card {
+            background: white;
+            border-radius: 1rem;
+            padding: 2rem;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+
+        h1 {
+            font-size: 2rem;
+            margin-bottom: 1.5rem;
+            color: #333;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .tabs {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 1.5rem;
+            border-bottom: 2px solid #e0e0e0;
+        }
+
+        .tab-btn {
+            padding: 0.75rem 1.5rem;
+            background: none;
+            border: none;
+            font-size: 1rem;
+            font-weight: 500;
+            color: #666;
+            cursor: pointer;
+            transition: all 0.3s;
+            border-bottom: 2px solid transparent;
+            margin-bottom: -2px;
+        }
+
+        .tab-btn:hover {
+            color: #667eea;
+        }
+
+        .tab-btn.active {
+            color: #667eea;
+            border-bottom-color: #667eea;
+        }
+
+        .tab-pane {
+            display: none;
+        }
+
+        .tab-pane.active {
+            display: block;
+        }
+
+        textarea {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid #ddd;
+            border-radius: 0.5rem;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9rem;
+            resize: vertical;
+        }
+
+        .drag-zone {
+            border: 2px dashed #ccc;
+            border-radius: 0.5rem;
+            padding: 2rem;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            background: #f9f9f9;
+        }
+
+        .drag-zone:hover {
+            border-color: #667eea;
+            background: #f0f0ff;
+        }
+
+        .drag-zone.drag-over {
+            border-color: #667eea;
+            background: #e8eaff;
+        }
+
+        .drag-icon {
+            font-size: 3rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .drag-text {
+            color: #666;
+            font-size: 0.9rem;
+        }
+
+        .preview-box {
+            border: 1px solid #ddd;
+            border-radius: 0.5rem;
+            padding: 1rem;
+            min-height: 300px;
+            max-height: 500px;
+            overflow: auto;
+            background: white;
+        }
+
+        .btn {
+            width: 100%;
+            padding: 0.75rem;
+            border: none;
+            border-radius: 0.5rem;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-top: 1rem;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: #5a6268;
+        }
+
+        .alert {
+            padding: 1rem;
+            border-radius: 0.5rem;
+            margin-top: 1rem;
+        }
+
+        .alert-success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .alert-error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .alert-info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+
+        .score-badge {
+            display: inline-block;
+            padding: 0.25rem 0.75rem;
+            border-radius: 2rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+        }
+
+        .score-low {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .score-medium {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .score-high {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="form-card">
+            <h1>
+                <span>🔍</span>
+                Email Spam Checker
+            </h1>
+            
+            <div class="tabs">
+                <button class="tab-btn active" data-tab="write">✏️ Write HTML</button>
+                <button class="tab-btn" data-tab="upload">📂 Upload HTML</button>
+                <button class="tab-btn" data-tab="preview">👁️ Preview</button>
+                <button class="tab-btn" data-tab="spam">🔍 Spam Check</button>
+            </div>
+
+            <!-- Write Tab -->
+            <div id="writeTab" class="tab-pane active">
+                <textarea id="htmlContent" rows="15" placeholder="Write or paste your HTML email content here..."></textarea>
+            </div>
+
+            <!-- Upload Tab -->
+            <div id="uploadTab" class="tab-pane">
+                <div class="drag-zone" id="htmlDragZone">
+                    <div class="drag-icon">📄</div>
+                    <div class="drag-text">Drag & drop an HTML file here<br>or click to select</div>
+                </div>
+                <input type="file" id="htmlFileInput" accept=".html,.htm" style="display:none">
+                <div id="uploadBadge" class="alert alert-info" style="display:none; margin-top:1rem;"></div>
+            </div>
+
+            <!-- Preview Tab -->
+            <div id="previewTab" class="tab-pane">
+                <div id="previewContent" class="preview-box">
+                    <p style="color: #999; text-align: center;">No content to preview yet.<br>Write or upload HTML to see preview.</p>
+                </div>
+            </div>
+
+            <!-- Spam Tab -->
+            <div id="spamTab" class="tab-pane">
+                <div id="spamResult" class="preview-box">
+                    <p style="color: #999; text-align: center;">Click "Check Spam Score" to analyze your email content.</p>
+                </div>
+                <button class="btn btn-primary" onclick="checkSpam()">🔍 Check Spam Score</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Get HTML content from current source
+        function getCurrentHTML() {
+            return document.getElementById('htmlContent').value;
+        }
+
+        // Update preview
+        function updatePreview() {
+            const html = getCurrentHTML();
+            const previewDiv = document.getElementById('previewContent');
+            if (html.trim()) {
+                previewDiv.innerHTML = html;
+            } else {
+                previewDiv.innerHTML = '<p style="color: #999; text-align: center;">No content to preview yet.</p>';
+            }
+        }
+
+        // Check spam using the backend API
+        async function checkSpam() {
+            const html = getCurrentHTML();
+            const resultDiv = document.getElementById('spamResult');
+            
+            if (!html.trim()) {
+                resultDiv.innerHTML = '<div class="alert alert-error">❌ Please enter or upload HTML content first.</div>';
+                return;
+            }
+
+            resultDiv.innerHTML = '<div style="text-align: center;"><div class="loading"></div><p style="margin-top: 1rem;">Analyzing email content...</p></div>';
+
+            try {
+                const response = await fetch('/api/spamcheck', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ html: html })
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    const score = data.score;
+                    const scorePercent = (score * 100).toFixed(1);
+                    let scoreClass = '';
+                    let scoreText = '';
+                    
+                    if (score < 0.2) {
+                        scoreClass = 'score-low';
+                        scoreText = 'Low Risk - Looks good!';
+                    } else if (score < 0.5) {
+                        scoreClass = 'score-medium';
+                        scoreText = 'Medium Risk - Consider improvements';
+                    } else {
+                        scoreClass = 'score-high';
+                        scoreText = 'High Risk - Needs significant improvement';
+                    }
+
+                    let rulesHtml = '';
+                    if (data.rules && data.rules.length > 0) {
+                        rulesHtml = '<h3 style="margin-top: 1rem; margin-bottom: 0.5rem;">Issues Found:</h3><ul style="margin-left: 1.5rem;">';
+                        data.rules.forEach(rule => {
+                            rulesHtml += `<li><strong>${rule.name}</strong>: ${rule.description} (Score: ${rule.score})</li>`;
+                        });
+                        rulesHtml += '</ul>';
+                    }
+
+                    resultDiv.innerHTML = `
+                        <div class="score-badge ${scoreClass}" style="font-size: 1.2rem;">
+                            Score: ${scorePercent}% - ${scoreText}
+                        </div>
+                        <div style="margin-top: 1rem;">
+                            <strong>Recommendation:</strong> ${data.recommendation || 'Review the issues above to improve your email deliverability.'}
+                        </div>
+                        ${rulesHtml}
+                    `;
+                } else {
+                    resultDiv.innerHTML = `<div class="alert alert-error">❌ Error: ${data.error || 'Failed to check spam score'}</div>`;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="alert alert-error">❌ Network error: ${error.message}</div>`;
+            }
+        }
+
+        // File upload handling
+        const dragZone = document.getElementById('htmlDragZone');
+        const fileInput = document.getElementById('htmlFileInput');
+
+        dragZone.addEventListener('click', () => {
+            fileInput.click();
+        });
+
+        dragZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            dragZone.classList.add('drag-over');
+        });
+
+        dragZone.addEventListener('dragleave', () => {
+            dragZone.classList.remove('drag-over');
+        });
+
+        dragZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dragZone.classList.remove('drag-over');
+            const file = e.dataTransfer.files[0];
+            if (file && (file.name.endsWith('.html') || file.name.endsWith('.htm'))) {
+                loadHTMLFile(file);
+            } else {
+                alert('Please drop an HTML file (.html or .htm)');
+            }
+        });
+
+        fileInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                loadHTMLFile(file);
+            }
+        });
+
+        function loadHTMLFile(file) {
+            const reader = new FileReader();
+            reader.onload = (ev) => {
+                const htmlContent = ev.target.result;
+                document.getElementById('htmlContent').value = htmlContent;
+                updatePreview();
+                
+                const badge = document.getElementById('uploadBadge');
+                badge.textContent = `✅ ${file.name} loaded successfully!`;
+                badge.style.display = 'block';
+                setTimeout(() => {
+                    badge.style.display = 'none';
+                }, 3000);
+                
+                // Auto switch to preview tab
+                document.querySelector('.tab-btn[data-tab="preview"]').click();
+            };
+            reader.readAsText(file);
+        }
+
+        // Tab switching logic
+        const tabs = document.querySelectorAll('.tab-btn');
+        const panes = {
+            write: document.getElementById('writeTab'),
+            upload: document.getElementById('uploadTab'),
+            preview: document.getElementById('previewTab'),
+            spam: document.getElementById('spamTab')
+        };
+
+        tabs.forEach(btn => {
+            btn.addEventListener('click', () => {
+                const tab = btn.dataset.tab;
+                tabs.forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                Object.values(panes).forEach(p => p.classList.remove('active'));
+                panes[tab].classList.add('active');
+                
+                if (tab === 'preview') {
+                    updatePreview();
+                }
+            });
+        });
+
+        // Update preview when content changes
+        document.getElementById('htmlContent').addEventListener('input', () => {
+            if (panes.preview.classList.contains('active')) {
+                updatePreview();
+            }
+        });
+    </script>
+</body>
+</html>
