@@ -1,14 +1,21 @@
 import os
 import re
 import requests
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, render_template
 from flask_cors import CORS
 from dotenv import load_dotenv
 
 load_dotenv()
 
-app = Flask(__name__)
+app = Flask(__name__, template_folder='templates')
 CORS(app)
+
+# ----------------------------------------------------------------------
+# Serve the spam check HTML page
+# ----------------------------------------------------------------------
+@app.route('/')
+def index():
+    return render_template('spamcheck.html')
 
 # ----------------------------------------------------------------------
 # Spam Check Proxy (public)
@@ -52,5 +59,5 @@ def health():
 
 if __name__ == '__main__':
     print("🔍 Spam Check Server running at http://localhost:5000")
-    print("   POST to /api/spamcheck with JSON: { 'html': '<html>...</html>' }")
+    print("   Open http://localhost:5000 in your browser")
     app.run(debug=True, port=5000)
