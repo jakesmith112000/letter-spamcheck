@@ -58,6 +58,7 @@ def health():
     return jsonify({'status': 'ok', 'service': 'spam-checker'}), 200
 
 if __name__ == '__main__':
-    print("🔍 Spam Check Server running at http://localhost:5000")
-    print("   Open http://localhost:5000 in your browser")
-    app.run(debug=True, port=5000)
+    port = int(os.environ.get('PORT', 5000))
+    print(f"🔍 Spam Check Server running on port {port}")
+    print(f"   Open in your browser")
+    app.run(host='0.0.0.0', debug=False, port=port)
