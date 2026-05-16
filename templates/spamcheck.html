@@ -44,6 +44,7 @@
             gap: 0.5rem;
             margin-bottom: 1.5rem;
             border-bottom: 2px solid #e0e0e0;
+            flex-wrap: wrap;
         }
 
         .tab-btn {
@@ -148,15 +149,6 @@
             box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
         }
 
-        .btn-secondary {
-            background: #6c757d;
-            color: white;
-        }
-
-        .btn-secondary:hover {
-            background: #5a6268;
-        }
-
         .alert {
             padding: 1rem;
             border-radius: 0.5rem;
@@ -181,27 +173,65 @@
             border: 1px solid #bee5eb;
         }
 
-        .score-badge {
-            display: inline-block;
-            padding: 0.25rem 0.75rem;
-            border-radius: 2rem;
-            font-weight: 600;
+        .score-card {
+            background: #f8f9fa;
+            border-radius: 0.5rem;
+            padding: 1.5rem;
             margin-bottom: 1rem;
+            text-align: center;
+        }
+
+        .score-number {
+            font-size: 3rem;
+            font-weight: bold;
+            margin: 0.5rem 0;
         }
 
         .score-low {
-            background: #d4edda;
-            color: #155724;
+            color: #28a745;
         }
 
         .score-medium {
-            background: #fff3cd;
-            color: #856404;
+            color: #ffc107;
         }
 
         .score-high {
-            background: #f8d7da;
-            color: #721c24;
+            color: #dc3545;
+        }
+
+        .score-label {
+            font-size: 1.2rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+
+        .rule-item {
+            padding: 0.75rem;
+            border-left: 3px solid;
+            margin-bottom: 0.5rem;
+            background: #f8f9fa;
+            border-radius: 0.25rem;
+        }
+
+        .rule-high {
+            border-left-color: #dc3545;
+            background: #fff5f5;
+        }
+
+        .rule-medium {
+            border-left-color: #ffc107;
+            background: #fffbf0;
+        }
+
+        .rule-low {
+            border-left-color: #28a745;
+            background: #f0fff4;
+        }
+
+        .rule-score {
+            font-weight: 600;
+            margin-top: 0.25rem;
+            font-size: 0.85rem;
         }
 
         .loading {
@@ -259,7 +289,7 @@
 
             <!-- Spam Tab -->
             <div id="spamTab" class="tab-pane">
-                <div id="spamResult" class="preview-box">
+                <div id="spamResult">
                     <p style="color: #999; text-align: center;">Click "Check Spam Score" to analyze your email content.</p>
                 </div>
                 <button class="btn btn-primary" onclick="checkSpam()">🔍 Check Spam Score</button>
@@ -268,12 +298,10 @@
     </div>
 
     <script>
-        // Get HTML content from current source
         function getCurrentHTML() {
             return document.getElementById('htmlContent').value;
         }
 
-        // Update preview
         function updatePreview() {
             const html = getCurrentHTML();
             const previewDiv = document.getElementById('previewContent');
@@ -284,7 +312,6 @@
             }
         }
 
-        // Check spam using the backend API
         async function checkSpam() {
             const html = getCurrentHTML();
             const resultDiv = document.getElementById('spamResult');
@@ -307,47 +334,93 @@
 
                 const data = await response.json();
 
-                if (response.ok) {
-                    const score = data.score;
-                    const scorePercent = (score * 100).toFixed(1);
+                if (response.ok && data.success !== false) {
+                    // The SpamCheck API returns: { score: 0.0-5.0, rules: [], ... }
+                    const score = data.score || 0;
+                    const maxScore = 5.0;
+                    const scorePercent = (score / maxScore) * 100;
+                    
                     let scoreClass = '';
                     let scoreText = '';
+                    let scoreLevel = '';
                     
-                    if (score < 0.2) {
+                    if (score <= 1.0) {
                         scoreClass = 'score-low';
-                        scoreText = 'Low Risk - Looks good!';
-                    } else if (score < 0.5) {
+                        scoreText = 'Low Risk - Excellent!';
+                        scoreLevel = 'low';
+                    } else if (score <= 2.5) {
                         scoreClass = 'score-medium';
-                        scoreText = 'Medium Risk - Consider improvements';
+                        scoreText = 'Medium Risk - Some issues detected';
+                        scoreLevel = 'medium';
                     } else {
                         scoreClass = 'score-high';
-                        scoreText = 'High Risk - Needs significant improvement';
+                        scoreText = 'High Risk - Needs improvement';
+                        scoreLevel = 'high';
                     }
 
                     let rulesHtml = '';
                     if (data.rules && data.rules.length > 0) {
-                        rulesHtml = '<h3 style="margin-top: 1rem; margin-bottom: 0.5rem;">Issues Found:</h3><ul style="margin-left: 1.5rem;">';
+                        rulesHtml = '<h3 style="margin-top: 1rem; margin-bottom: 0.5rem;">📋 Spam Detection Rules:</h3>';
                         data.rules.forEach(rule => {
-                            rulesHtml += `<li><strong>${rule.name}</strong>: ${rule.description} (Score: ${rule.score})</li>`;
+                            let ruleClass = 'rule-low';
+                            let ruleScoreClass = '';
+                            if (rule.score >= 1.5) {
+                                ruleClass = 'rule-high';
+                                ruleScoreClass = 'score-high';
+                            } else if (rule.score >= 0.5) {
+                                ruleClass = 'rule-medium';
+                                ruleScoreClass = 'score-medium';
+                            } else {
+                                ruleClass = 'rule-low';
+                                ruleScoreClass = 'score-low';
+                            }
+                            
+                            rulesHtml += `
+                                <div class="rule-item ${ruleClass}">
+                                    <strong>${escapeHtml(rule.name)}</strong>
+                                    <div style="margin-top: 0.25rem; font-size: 0.9rem; color: #666;">${escapeHtml(rule.description)}</div>
+                                    <div class="rule-score ${ruleScoreClass}">Score: +${rule.score.toFixed(1)} points</div>
+                                </div>
+                            `;
                         });
-                        rulesHtml += '</ul>';
+                    } else {
+                        rulesHtml = '<div class="alert alert-success">✅ No spam triggers detected! Your email looks clean.</div>';
                     }
 
                     resultDiv.innerHTML = `
-                        <div class="score-badge ${scoreClass}" style="font-size: 1.2rem;">
-                            Score: ${scorePercent}% - ${scoreText}
-                        </div>
-                        <div style="margin-top: 1rem;">
-                            <strong>Recommendation:</strong> ${data.recommendation || 'Review the issues above to improve your email deliverability.'}
+                        <div class="score-card">
+                            <div class="score-label">Spam Score</div>
+                            <div class="score-number ${scoreClass}">${score.toFixed(1)} / ${maxScore.toFixed(1)}</div>
+                            <div class="score-label" style="font-size: 1rem;">${scoreText}</div>
+                            <div style="margin-top: 0.5rem; font-size: 0.9rem;">
+                                <strong>What this means:</strong><br>
+                                ${getScoreExplanation(score)}
+                            </div>
                         </div>
                         ${rulesHtml}
                     `;
                 } else {
-                    resultDiv.innerHTML = `<div class="alert alert-error">❌ Error: ${data.error || 'Failed to check spam score'}</div>`;
+                    resultDiv.innerHTML = `<div class="alert alert-error">❌ Error: ${data.error || data.Message || 'Failed to check spam score'}</div>`;
                 }
             } catch (error) {
                 resultDiv.innerHTML = `<div class="alert alert-error">❌ Network error: ${error.message}</div>`;
             }
+        }
+
+        function getScoreExplanation(score) {
+            if (score <= 1.0) {
+                return 'Your email is likely to pass most spam filters. Keep up the good practices!';
+            } else if (score <= 2.5) {
+                return 'Your email might get filtered by some spam detectors. Review the issues below to improve deliverability.';
+            } else {
+                return 'Your email is likely to be marked as spam. Address the critical issues below immediately.';
+            }
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
         }
 
         // File upload handling
